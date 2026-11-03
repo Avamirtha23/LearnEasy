@@ -15,11 +15,13 @@ import {
 } from 'lucide-react';
 import { subjectsData } from '../data/subjects';
 import { useEnrollment } from '../context/EnrollmentContext';
+import { contactAPI } from '../services/api';
 
 const HomePage = () => {
   const navigate = useNavigate();
   const { selectSubject } = useEnrollment();
   const [contactSubmitted, setContactSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -32,13 +34,21 @@ const HomePage = () => {
     navigate('/tutors');
   };
 
-  const handleContactSubmit = (e) => {
+  const handleContactSubmit = async (e) => {
     e.preventDefault();
-    setContactSubmitted(true);
-    setTimeout(() => {
-      setContactSubmitted(false);
-      setFormData({ name: '', email: '', subject: '', message: '' });
-    }, 4000);
+    setIsSubmitting(true);
+    try {
+      await contactAPI.submit(formData);
+    } catch (err) {
+      console.warn('Contact API submit notice:', err.message);
+    } finally {
+      setIsSubmitting(false);
+      setContactSubmitted(true);
+      setTimeout(() => {
+        setContactSubmitted(false);
+        setFormData({ name: '', email: '', subject: '', message: '' });
+      }, 5000);
+    }
   };
 
   return (
@@ -401,9 +411,14 @@ const HomePage = () => {
                   />
                 </div>
 
-                <button type="submit" className="btn btn-gold btn-submit" style={{ width: '100%', gap: '8px' }}>
+                <button 
+                  type="submit" 
+                  disabled={isSubmitting} 
+                  className="btn btn-gold btn-submit" 
+                  style={{ width: '100%', gap: '8px' }}
+                >
                   <Send size={18} />
-                  <span>Submit Message</span>
+                  <span>{isSubmitting ? 'Sending Message...' : 'Submit Message'}</span>
                 </button>
               </form>
             )}

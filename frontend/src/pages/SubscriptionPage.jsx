@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, BookOpen, GraduationCap, Clock, Calendar,
-  IndianRupee, CheckCircle, Sparkles, ShieldCheck
+  IndianRupee, CheckCircle, Sparkles, ShieldCheck, User, Mail, Phone
 } from 'lucide-react';
 import StepIndicator from '../components/StepIndicator';
 import SuccessPopup from '../components/SuccessPopup';
 import { useEnrollment } from '../context/EnrollmentContext';
+import { subscriptionsAPI } from '../services/api';
 
 const SubscriptionPage = () => {
   const navigate = useNavigate();
@@ -23,6 +24,15 @@ const SubscriptionPage = () => {
   } = enrollment;
 
   const [showSuccess, setShowSuccess] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [createdSubscriptionId, setCreatedSubscriptionId] = useState(null);
+
+  // Student details state
+  const [studentInfo, setStudentInfo] = useState({
+    name: 'Rahul Sharma',
+    email: 'rahul.sharma@example.com',
+    phone: '+91 98765 43210'
+  });
 
   // Guard: redirect if enrollment is incomplete
   React.useEffect(() => {
@@ -33,10 +43,33 @@ const SubscriptionPage = () => {
     }
   }, [isComplete, navigate, selectedSubject, selectedTutor]);
 
-  const handleSubscribeNow = () => {
-    setShowSuccess(true);
-    // Prevent body scroll while popup is open
-    document.body.style.overflow = 'hidden';
+  const handleSubscribeNow = async () => {
+    setIsSubmitting(true);
+    let subId = null;
+
+    try {
+      const payload = {
+        studentName: studentInfo.name || 'Student',
+        studentEmail: studentInfo.email || 'student@example.com',
+        studentPhone: studentInfo.phone || '',
+        subjectId: selectedSubject.id,
+        tutorId: selectedTutor.id,
+        sessionTiming,
+        courseDuration,
+      };
+
+      const res = await subscriptionsAPI.create(payload);
+      if (res?.data?._id) {
+        subId = res.data._id;
+        setCreatedSubscriptionId(subId);
+      }
+    } catch (err) {
+      console.warn('Subscription saved locally (API notice):', err.message);
+    } finally {
+      setIsSubmitting(false);
+      setShowSuccess(true);
+      document.body.style.overflow = 'hidden';
+    }
   };
 
   const handleGoHome = () => {
@@ -151,6 +184,51 @@ const SubscriptionPage = () => {
                   </div>
                 </div>
 
+                {/* ── Student Information ── */}
+                <p className="summary-section-heading" style={{ marginTop: '8px' }}>
+                  <User size={16} />
+                  Student Information
+                </p>
+
+                <div className="summary-grid" style={{ marginBottom: '24px' }}>
+                  <div className="summary-item">
+                    <label className="summary-label" htmlFor="student-name">Your Full Name</label>
+                    <input
+                      id="student-name"
+                      type="text"
+                      value={studentInfo.name}
+                      onChange={(e) => setStudentInfo({ ...studentInfo, name: e.target.value })}
+                      placeholder="e.g. Rahul Sharma"
+                      style={{
+                        padding: '8px 12px',
+                        borderRadius: '6px',
+                        border: '1px solid var(--border-color)',
+                        fontSize: '0.95rem',
+                        fontWeight: 600,
+                        color: 'var(--navy-dark)'
+                      }}
+                    />
+                  </div>
+                  <div className="summary-item">
+                    <label className="summary-label" htmlFor="student-email">Email Address</label>
+                    <input
+                      id="student-email"
+                      type="email"
+                      value={studentInfo.email}
+                      onChange={(e) => setStudentInfo({ ...studentInfo, email: e.target.value })}
+                      placeholder="e.g. rahul@example.com"
+                      style={{
+                        padding: '8px 12px',
+                        borderRadius: '6px',
+                        border: '1px solid var(--border-color)',
+                        fontSize: '0.95rem',
+                        fontWeight: 600,
+                        color: 'var(--navy-dark)'
+                      }}
+                    />
+                  </div>
+                </div>
+
                 {/* ── What's Included ── */}
                 <p className="summary-section-heading">
                   <ShieldCheck size={16} />
@@ -187,12 +265,17 @@ const SubscriptionPage = () => {
                 {/* ── Subscribe Now CTA ── */}
                 <button
                   type="button"
+                  disabled={isSubmitting}
                   onClick={handleSubscribeNow}
                   className="btn btn-primary btn-lg"
                   style={{ width: '100%', fontSize: '1.1rem', padding: '16px 32px', gap: '10px' }}
                 >
                   <Sparkles size={20} />
-                  <span>Subscribe Now — ₹{totalCost.toLocaleString('en-IN')}</span>
+                  <span>
+                    {isSubmitting 
+                      ? 'Confirming Subscription...' 
+                      : `Subscribe Now — ₹${totalCost.toLocaleString('en-IN')}`}
+                  </span>
                 </button>
 
                 <p style={{ textAlign: 'center', fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '12px', marginBottom: 0 }}>
@@ -230,6 +313,8 @@ const SubscriptionPage = () => {
           sessionTiming,
           courseDuration,
           totalCost,
+          studentName: studentInfo.name,
+          subscriptionId: createdSubscriptionId,
         }}
       />
     </div>

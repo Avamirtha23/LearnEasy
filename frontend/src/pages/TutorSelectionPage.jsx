@@ -6,6 +6,7 @@ import { getTutorsBySubject, tutorsData } from '../data/tutors';
 import TutorCard from '../components/TutorCard';
 import StepIndicator from '../components/StepIndicator';
 import { useEnrollment } from '../context/EnrollmentContext';
+import { tutorsAPI } from '../services/api';
 
 const TutorSelectionPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -13,6 +14,7 @@ const TutorSelectionPage = () => {
   const { selectedSubject, selectSubject, selectedTutor, selectTutor } = useEnrollment();
 
   const [validationError, setValidationError] = useState('');
+  const [tutorList, setTutorList] = useState([]);
 
   // Read subject from query param or fallback to context
   const querySubjectId = searchParams.get('subject');
@@ -29,7 +31,23 @@ const TutorSelectionPage = () => {
   }, [querySubjectId, selectedSubject]);
 
   const activeSubject = selectedSubject || subjectsData.find((s) => s.id === querySubjectId) || subjectsData[0];
-  const tutors = getTutorsBySubject(activeSubject?.id);
+
+  useEffect(() => {
+    if (activeSubject?.id) {
+      // Set initial from local data
+      setTutorList(getTutorsBySubject(activeSubject.id));
+      // Fetch from MongoDB
+      tutorsAPI.getAll(activeSubject.id)
+        .then((res) => {
+          if (res?.data && res.data.length > 0) {
+            setTutorList(res.data);
+          }
+        })
+        .catch((err) => console.log('Tutors loaded from local cache:', err.message));
+    }
+  }, [activeSubject?.id]);
+
+  const tutors = tutorList.length > 0 ? tutorList : getTutorsBySubject(activeSubject?.id);
 
   const handleTutorSelect = (tutor) => {
     setValidationError('');

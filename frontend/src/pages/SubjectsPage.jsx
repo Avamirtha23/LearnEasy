@@ -1,20 +1,32 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Code, BookOpenCheck, Sparkles } from 'lucide-react';
 import { subjectsData, SUBJECT_CATEGORIES } from '../data/subjects';
 import SubjectCard from '../components/SubjectCard';
 import StepIndicator from '../components/StepIndicator';
 import { useEnrollment } from '../context/EnrollmentContext';
+import { subjectsAPI } from '../services/api';
 
 const SubjectsPage = () => {
   const navigate = useNavigate();
   const { selectedSubject, selectSubject } = useEnrollment();
+  const [subjectsList, setSubjectsList] = useState(subjectsData);
 
-  const programmingSubjects = subjectsData.filter(
+  useEffect(() => {
+    subjectsAPI.getAll()
+      .then((res) => {
+        if (res?.data && res.data.length > 0) {
+          setSubjectsList(res.data);
+        }
+      })
+      .catch((err) => console.log('Subjects loaded from local cache:', err.message));
+  }, []);
+
+  const programmingSubjects = subjectsList.filter(
     (s) => s.category === SUBJECT_CATEGORIES.PROGRAMMING
   );
   
-  const academicSubjects = subjectsData.filter(
+  const academicSubjects = subjectsList.filter(
     (s) => s.category === SUBJECT_CATEGORIES.ACADEMIC
   );
 

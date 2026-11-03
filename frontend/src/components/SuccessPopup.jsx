@@ -22,6 +22,20 @@ const SuccessPopup = ({ isOpen, onClose, onGoHome, enrollmentData }) => {
 
         {/* Summary Details */}
         <div className="success-details-box">
+          {enrollmentData.subscriptionId && (
+            <div className="success-row">
+              <span className="success-row-label">Subscription ID:</span>
+              <span className="success-row-val" style={{ fontFamily: 'monospace', color: 'var(--teal-dark)' }}>
+                #{enrollmentData.subscriptionId.slice(-8).toUpperCase()}
+              </span>
+            </div>
+          )}
+          {enrollmentData.studentName && (
+            <div className="success-row">
+              <span className="success-row-label">Student Name:</span>
+              <span className="success-row-val">{enrollmentData.studentName}</span>
+            </div>
+          )}
           <div className="success-row">
             <span className="success-row-label">Enrolled Subject:</span>
             <span className="success-row-val">{selectedSubject?.name || 'Selected Course'}</span>
